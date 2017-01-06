@@ -1,32 +1,70 @@
 defmodule TL.Schema do
-  @moduledoc false
-  @tl_schema "priv/mtproto.json"
-  @api_layer "priv/api_layer_23.json"
+  @moduledoc """
+  Parse and search the MTProto TL-schema (See
+  [core.telegram.org/schema/mtproto](https://core.telegram.org/schema/mtproto))
+  and the API TL-schema (See [core.telegram.org/schema]
+  (https://core.telegram.org/schema)).
+  """
 
-  # Parse the MTProto's TL-schema and the API layer.
-  # Output a map.
-  def schema(type \\ :methods) do
-    type = Atom.to_string type
-    {:ok, tl_schema_json} = File.read @tl_schema
-    {:ok, api_layer_json} = File.read @api_layer
+  @tl "priv/mtproto.json"
+  @api_layer 23
+  @api "priv/api-layer-#{@api_layer}.json"
+
+  @doc """
+    Return the version of the API layer used.
+  """
+  def api_layer_version, do: @api_layer
+
+  @doc """
+    Return the MTProto TL-schema as a map.
+  """
+  def tl do
+    {:ok, tl_schema_json} = File.read @tl
     {:ok, tl_schema} = JSON.decode tl_schema_json
-    {:ok, api_layer} = JSON.decode api_layer_json
-    tl_schema[type] ++ api_layer[type]
+    tl_schema
   end
 
-  # Search in MTProto'sTL-schma and the API layer.
-  def search(type, name) do
-    schema = schema(type)
-    field =
-      case type do
-        :methods -> "method"
-        :constructors -> "predicate"
-      end
+  @doc """
+    Return the API TL-schema as a map. Use `TL.Schema.api_layer_version/0` to
+    get the layer version.
+  """
+  def api do
+    {:ok, api_schema_json} = File.read @api
+    {:ok, api_schema} = JSON.decode api_schema_json
+    api_schema
+  end
 
+  @doc """
+    Search the schema(s).
+  """
+  def search(key, content, schema \\ :both) do
+    case schema do
+      :both ->
+        {tl_match, tl_value} = search(key, content, :tl)
+        # If a match was found in the tl schema, return it. If not, search in
+        # the api schema.
+        {status, value} =
+          if tl_match == :match do
+            {:ok, tl_value}
+          else
+            {api_match, api_value} = search(key, content, :api)
+            if api_match == :match, do: {:ok, api_match}, else: {:err, nil}
+          end
+      :tl -> schema_search(key, content, Schema.tl)
+      :api -> schema_search(key, content, Schema.api)
+      _ -> {:error}
+    end
+  end
+
+  defp schema_search(key, content, schema) do
     description = Enum.filter schema, fn
-          x -> Map.get(x, field) == name
+      x -> Map.get(x, key) == content
     end
 
-    description
+    if Enum.is_empty? description do
+      {:nothing, nil}
+    else
+      {:match, Enum.first(description)}
+    end
   end
-end
+ end
