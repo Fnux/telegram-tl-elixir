@@ -1,115 +1,52 @@
 defmodule TL.Parse do
   alias TL.Schema
 
-  @moduledoc """
-    MTProto payload parser.
-  """
+  @moduledoc false
 
-  # Parse a payload
-  def payload(data) do
-    auth_key_id = :binary.part(data, 0, 8)
+  def decode(container, content) do
+    {:match, description} = Schema.search "method_or_predicate", container
+    expected_params = description |> Map.get("params")
 
-    # Unwrap the message, given if it was encrypted or not
-    map =
-      unless auth_key_id == <<0::8*8>> do
-        data |> unwrap
-      else
-        data |> unwrap(:plain)
-      end
+    {map, tail} = extract(expected_params, content)
 
-    constructor = Map.get map, :constructor
-    message_content = Map.get map, :message_content
+    name = if Map.has_key?(description, "predicate") do
+      Map.get description, "predicate"
+    else
+      Map.get description, "method"
+    end
 
-    # Get message's schema
-    schema = scan(constructor)
+    map = map |> Map.put(:name, name)
 
-    # Buld and return a map of the content
-    decode(message_content, schema)
-  end
-
-  # Unwrap a message (encryptable)
-  def unwrap(data) do
-    salt = :binary.part(data, 0, 8) |> deserialize(:long)
-    session_id = :binary.part(data, 8, 8) |> deserialize(:long)
-    message_id = :binary.part(data, 16, 8) |> deserialize(:long)
-    seq_no =:binary.part(data, 24, 4) |> deserialize(:int)
-    message_data_length =  :binary.part(data, 28, 4) |> deserialize(:int)
-    message_data = :binary.part(data, 32, message_data_length)
-
-    constructor = :binary.part(message_data, 0, 4) |> deserialize(:int)
-    message_content = :binary.part(message_data, 4, message_data_length - 4)
-
-    %{
-      salt: salt,
-      session_id: session_id,
-      message_id: message_id,
-      seq_no: seq_no,
-      messsage_data_length: message_data_length,
-      constructor: constructor,
-      message_content: message_content
-    }
-  end
-
-  # Unwrap a plaintext message
-  def unwrap(data, :plain) do
-    auth_key_id = :binary.part(data, 0, 8) |> deserialize(:long)
-    messsage_id = :binary.part(data, 8, 8) |> deserialize(:long)
-    message_data_length = :binary.part(data, 16, 4) |> deserialize(:int)
-    message_data = :binary.part(data, 20, message_data_length)
-
-    constructor = :binary.part(message_data, 0, 4) |> deserialize(:int)
-    message_content = :binary.part(message_data, 4, message_data_length - 4)
-
-    %{
-      auth_key_id: auth_key_id,
-      message_id: messsage_id,
-      message_data_length: message_data_length,
-      constructor: constructor,
-      message_content: message_content
-     }
-  end
-
-  # Extract the schema
-  def scan(constructor, struct \\ :constructors) do
-
-    # Get the structure of the payload
-    schema = TL.schema struct
-    description = Enum.filter schema, fn
-           x -> Map.get(x, "id") |> String.to_integer == constructor
-      end
-
-    description
-  end
-
-  # Decode given a schema
-  def decode(data, schema) do
-    expected_params = schema |> List.first |> Map.get("params")
-
-    {_, map} = extract(expected_params, data)
-
-    map |> Map.put(:predicate, schema |> List.first |> Map.get("predicate"))
+    {map, tail}
   end
 
   # Extract
-  def extract(schema, data_tail, map \\ %{})
-  def extract([], data_tail, map), do: {data_tail, map}
-  def extract([schema_head | schema_tail], data, map) do
+  def extract(params, data, map \\ %{})
+  def extract([], data_tail, map), do: {map, data_tail}
+  def extract([param | params_tail], data, map) do
     # Get the name and the type of the value from the structure
-    name = Map.get(schema_head, "name") |> String.to_atom
-    type = Map.get(schema_head, "type") |> String.to_atom
+    name = Map.get(param, "name") |> String.to_atom
+    type = Map.get(param, "type") |> String.to_atom
 
     # Deserialize and map
-    {value, data_tail} = deserialize(:pack, data, type)
+    {value, data_tail} = deserialize(data, type, :return_tail)
     map = map |> Map.put(name, value)
 
-    # Iterate on the next elements
-    extract schema_tail, data_tail, map
+    # Iterate on the next element
+    extract params_tail, data_tail, map
   end
 
-  # deserialize
-  defp deserialize(:pack, data, type) do
+  # Deserialize
+  def deserialize(value, type) do
+    {value, _} = deserialize(value, type, :return_tail)
+    value
+  end
+
+  # Deserialize the first element of the binary (given its type). Return the
+  # tail.
+  defp deserialize(data, type, :return_tail) do
     case type do
-      # Basic types
+    # Basic types
       :int ->
         {head, tail} = binary_split(data, 4)
         <<value::signed-size(4)-little-unit(8)>> = head
@@ -128,7 +65,7 @@ defmodule TL.Parse do
         {value, tail}
       :long ->
         {head, tail} = binary_split(data, 8)
-        <<value::signed-little-size(8)-unit(8)>> = head
+        <<value::unsigned-little-size(8)-unit(8)>> = head
         {value, tail}
       :double ->
         {head, tail} = binary_split(data, 8)
@@ -140,11 +77,11 @@ defmodule TL.Parse do
         tail = :binary.part(data, total_length, byte_size(data) - total_length)
         {string, tail}
 
-      # Bytes are handled as strings
+        # Bytes are handled as strings
       :bytes ->
         deserialize(:pack, data, :string)
 
-      # Anything else. Either a vector or a boxed type
+        # Anything else. Either a vector or a boxed type
       _ ->
         if Atom.to_string(type) =~ ~r/^vector/ui do
           deserialize(:vector, data, type)
@@ -154,52 +91,39 @@ defmodule TL.Parse do
     end
   end
 
-  # Deserialize a boxed element
+  # Deserialize a boxed element.
   defp deserialize(:boxed, data, type) do
     type = Atom.to_string(type) |> String.replace("%","")
-    {_, description, offset} =
-      unless (type == "Object") do
-      # Get schema
-      schema = TL.schema :constructors
-      description = Enum.filter schema, fn
-        x -> Map.get(x, "type") == type
-      end
+    {map, tail} = unless (type == "Object") do
+      container = type # "Ojbect"
+      decode(container, data)
+    else
+      container = :binary.part(data, 0, 4) |> deserialize(:int)
+      content = :binary.part(data, 4, byte_size(data) - 4)
+      decode(container, content)
+    end
 
-      {schema, description, 0}
-      else
-        type = :binary.part(data, 0, 4) |> deserialize(:int)
-        schema = TL.schema :constructors
-        description = Enum.filter schema, fn
-          x -> Map.get(x, "id") |> String.to_integer == type
-        end
-        {schema, description, 4}
-      end
-
-      expected_params = description |> List.first |> Map.get("params")
-      {tail, map} = extract(expected_params, :binary.part(data, offset, byte_size(data) - offset))
-      map = map |> Map.put(:predicate, description |> List.first |> Map.get("predicate"))
-
-      {map, tail}
+    {map, tail}
   end
 
   # Deserialize a vector
   defp deserialize(:vector, data, type) do
-    # Extract internal type (:Vector<type>)
-    type = Atom.to_string(type) |> String.split(~r{<|>})
-                                |> Enum.at(1)
-                                |> String.to_atom
+  # Extract internal type (:Vector<type>)
+  type = Atom.to_string(type) |> String.split(~r{<|>})
+         |> Enum.at(1)
+         |> String.to_atom
 
-    # check vector id, size & offset
-    vector = :binary.part(data, 0, 4) |> deserialize(:int)
-    {size, offset} =
-      if (vector == 0x1cb5c415) do
-        {:binary.part(data, 4, 4) |> deserialize(:int), 8}
-      else
-        {:binary.part(data, 0, 4) |> deserialize(:int), 4}
-      end
+         # check vector id, size & offset
+         vector = :binary.part(data, 0, 4) |> deserialize(:int)
+         {size, offset} =
+           if (vector == 0x1cb5c415) do
+             {:binary.part(data, 4, 4) |> deserialize(:int), 8}
+           else
+             {:binary.part(data, 0, 4) |> deserialize(:int), 4}
+           end
 
-    # {value, tail}
-    deserialize(:vector, :binary.part(data, offset, byte_size(data) - offset), size, type)  
+           # {value, tail}
+           deserialize(:vector, :binary.part(data, offset, byte_size(data) - offset), size, type)
   end
 
   defp deserialize(meta, data, size, type, values \\ [])
@@ -211,12 +135,6 @@ defmodule TL.Parse do
     # loop
     size = size - 1
     deserialize(:vector, tail, size, type, values)
-  end
-
-  # Deserialize a single element
-  def deserialize(value, type) do
-    {value, _} = deserialize(:pack, value, type)
-    value
   end
 
   # Compute the prefix, content and total (including prefix and padding) length
