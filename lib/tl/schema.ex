@@ -2,8 +2,8 @@ defmodule TL.Schema do
   @moduledoc """
   Parse and search the MTProto TL-schema (See
   [core.telegram.org/schema/mtproto](https://core.telegram.org/schema/mtproto))
-  and the API TL-schema (See [core.telegram.org/schema]
-  (https://core.telegram.org/schema)).
+  and the API TL-schema (See
+  [core.telegram.org/schema](https://core.telegram.org/schema)).
   """
 
   @tl "priv/mtproto.json"
@@ -45,26 +45,47 @@ defmodule TL.Schema do
         # the api schema.
         {status, value} =
           if tl_match == :match do
-            {:ok, tl_value}
+            {:match, tl_value}
           else
             {api_match, api_value} = search(key, content, :api)
-            if api_match == :match, do: {:ok, api_match}, else: {:err, nil}
+            if api_match == :match, do: {:ok, api_match}, else: {:nothing, nil}
           end
-      :tl -> schema_search(key, content, Schema.tl)
-      :api -> schema_search(key, content, Schema.api)
-      _ -> {:error}
+      :tl -> search_schema(key, content, tl)
+      :api -> search_schema(key, content, api)
+      _ -> {:err, nil}
     end
   end
 
-  defp schema_search(key, content, schema) do
-    description = Enum.filter schema, fn
-      x -> Map.get(x, key) == content
-    end
-
-    if Enum.is_empty? description do
-      {:nothing, nil}
+  defp search_schema(key, value, schema) do
+    method = search_methods(key, value, schema)
+    if is_nil(method) do
+      constructor = search_constructors(key, value, schema)
+      if is_nil(constructor) do
+        {:nothing, nil}
+      else
+        {:match, constructor}
+      end
     else
-      {:match, Enum.first(description)}
+      {:match, method}
     end
   end
- end
+
+  defp search_methods(key, value, schema) do
+    key = if (key == "method_or_predicate"), do: "method", else: key
+    schema = Map.get(schema, "methods")
+  match(key, value, schema)
+  end
+
+  defp search_constructors(key, value, schema) do
+    key = if (key == "method_or_predicate"), do: "predicate", else: key
+    schema = Map.get(schema, "constructors")
+  match(key, value, schema)
+  end
+
+  defp match(key, value, schema) do
+    description = Enum.filter schema, fn
+      x -> Map.get(x, key) == value
+    end
+    if Enum.empty?(description), do: nil, else: List.first(description)
+  end
+end

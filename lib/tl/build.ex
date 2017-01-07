@@ -1,41 +1,31 @@
 defmodule TL.Build do
   alias TL.Schema
 
-  @moduledoc """
-    MTProto payload builder.
-  """
+  @moduledoc false
 
-  # Build a payload given a constructor and argument
-  def payload(method, args, :plain), do: encode(method, args) |> wrap(:plain)
+  def encode(container, content) do
+    {:match, description} = Schema.search "method_or_predicate", container
+    expected_params = description |> Map.get("params")
 
-  # Build an encryptable payload
-  def payload(method, args), do: encode(method, args) |> wrap
+    # Map values to their types
+    map = Enum.map expected_params,fn x ->
+      {
+        Map.get(x, "type") |> String.to_atom,
+        Map.get(content, String.to_atom Map.get(x, "name"))
+      }
+    end
 
-  # Encode & Serialize
-  def encode(method, params, schema \\ :methods) do
-     # Get the payload structure
-     description = Schema.search schema, method
-     expected_params = description |> List.first |> Map.get("params")
+    # Serialized values
+    serialized_values = map |> Enum.map(fn {type, value} -> serialize(value, type) end)
 
-     # Map values to their types
-     map = Enum.map expected_params,fn x ->
-          {
-            Map.get(x, "type") |> String.to_atom,
-            Map.get(params, String.to_atom Map.get(x, "name"))
-          }
-        end
+    # Seralize the constructor
+    serialized_method = description
+                        |> Map.get("id")
+                        |> String.to_integer
+                        |> serialize(:head4)
 
-     # Serialized values
-     serialized_values = map |> Enum.map(fn {type, value} -> serialize(value, type) end)
-
-     # Seralize the constructor
-     serialized_method = description |> List.first
-                                     |> Map.get("id")
-                                     |> String.to_integer
-                                     |> serialize(:head4)
-
-     # Build the final payload
-     serialized_method <> :binary.list_to_bin serialized_values
+    # Build the final payload
+    serialized_method <> :binary.list_to_bin serialized_values
   end
 
   # Serialize a value given its type
@@ -76,33 +66,6 @@ defmodule TL.Build do
       padding = p.(div)
       <<254>> <> <<len::little-size(3)-unit(8)>> <> string <> <<0::size(padding)-unit(8)>>
     end
-  end
-
-  # Wrap the data as an unencrypted MTProto message
-  defp wrap(data, :plain) do
-    auth_id_key = 0
-    msg_id = generate_id
-    msg_len = byte_size(data)
-    serialize(auth_id_key, :head8) <> serialize(msg_id, :head8)
-                                   <> serialize(msg_len, :head4)
-                                   <> data
-  end
-
-  # wrap the data as an encryptable payload
-  def wrap(data) do
-    msg_id = generate_id
-    # Set in the handler
-    seq_no = 0
-    msg_len = byte_size(data)
-
-    serialize(msg_id, :head8) <> serialize(seq_no, :head4)
-                              <> serialize(msg_len, :head4)
-                              <> data
-  end
-
-  # Generate id for messages,  Unix time * 2^32
-  defp generate_id do
-    :os.system_time(:seconds) * :math.pow(2,32) |> round
   end
 
   # From int to bin
