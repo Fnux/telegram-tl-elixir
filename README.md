@@ -1,19 +1,8 @@
-# TL
+# Telegram-TL
 
-**TODO: Add description**
+This library allows you to serialize and deserialize elements of the
+[TL Language](https://core.telegram.org/mtproto/TL). It was originally
+designed to be used by
+[telegram-mt-elixir](https://github.com/Fnux/telegram-mt-elixir).
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `tl` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [{:tl, "~> 0.1.0"}]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/tl](https://hexdocs.pm/tl).
-
+The documentation is available [here (not yet available)](#).
