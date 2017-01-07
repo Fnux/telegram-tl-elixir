@@ -3,11 +3,17 @@ defmodule TL.Mixfile do
 
   def project do
     [app: :tl,
-     version: "0.1.0",
+     version: "0.0.1-alpha",
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps()]
+     deps: deps(),
+
+     # Docs
+     name: "Telegram TL",
+     source_url: "https://github.com/fnux/telegram-tl-elixir",
+     homepage_url: "http://github.com/fnux/telegram-tl-elixir",
+     docs: [main: "TL"]]
   end
 
   # Configuration for the OTP application
