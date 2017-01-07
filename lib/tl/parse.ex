@@ -22,9 +22,9 @@ defmodule TL.Parse do
   end
 
   # Extract
-  def extract(params, data, map \\ %{})
-  def extract([], data_tail, map), do: {map, data_tail}
-  def extract([param | params_tail], data, map) do
+  defp extract(params, data, map \\ %{})
+  defp extract([], data_tail, map), do: {map, data_tail}
+  defp extract([param | params_tail], data, map) do
     # Get the name and the type of the value from the structure
     name = Map.get(param, "name") |> String.to_atom
     type = Map.get(param, "type") |> String.to_atom
