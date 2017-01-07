@@ -23,7 +23,7 @@ defmodule TL.Build do
     serialized_method = description
                         |> Map.get("id")
                         |> String.to_integer
-                        |> serialize(:head4)
+                        |> serialize(:int)
 
     # Build the final payload
     serialized_method <> :binary.list_to_bin serialized_values

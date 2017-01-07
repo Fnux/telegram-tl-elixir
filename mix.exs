@@ -2,7 +2,7 @@ defmodule TL.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :tl,
+    [app: :telegram_tl,
      version: "0.0.1-alpha",
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
