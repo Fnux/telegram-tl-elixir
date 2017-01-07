@@ -43,15 +43,14 @@ defmodule TL.Schema do
         {tl_match, tl_value} = search(key, content, :tl)
         # If a match was found in the tl schema, return it. If not, search in
         # the api schema.
-        {status, value} =
           if tl_match == :match do
             {:match, tl_value}
           else
             {api_match, api_value} = search(key, content, :api)
-            if api_match == :match, do: {:ok, api_match}, else: {:nothing, nil}
+            if api_match == :match, do: {:match, api_value}, else: {:nothing, nil}
           end
-      :tl -> search_schema(key, content, tl)
-      :api -> search_schema(key, content, api)
+      :tl -> search_schema(key, content, tl())
+      :api -> search_schema(key, content, api())
       _ -> {:err, nil}
     end
   end
