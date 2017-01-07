@@ -5,7 +5,9 @@ defmodule TL.Parse do
   @moduledoc false
 
   def decode(container, content) do
-    {:match, description} = Schema.search "method_or_predicate", container
+    container = if is_integer(container), do: Integer.to_string(container),
+      else: container
+    {:match, description} = Schema.search "id", container
     expected_params = description |> Map.get("params")
 
     {map, tail} = extract(expected_params, content)

@@ -32,15 +32,14 @@ defmodule TL.Build do
   # Serialize a value given its type
   def serialize(data, type) do
     case type do
-      :int -> <<data::signed-little-size(1)-unit(32)>>
+      :int -> <<data::little-signed-size(4)-unit(8)>>
+      :int64 -> <<data::little-signed-size(8)-unit(8)>>
       :int128 -> <<data::signed-big-size(16)-unit(8)>>
       :int256 -> <<data::signed-big-size(32)-unit(8)>>
       :long -> <<data::unsigned-little-size(8)-unit(8)>>
       :double -> <<data::signed-little-size(2)-unit(32)>>
       :string -> serialize_string(data)
-      :head4 -> <<data::little-signed-size(4)-unit(8)>>
-      :head8 -> <<data::little-signed-size(8)-unit(8)>>
-      :bytes ->
+          :bytes ->
         bin =
           if (is_binary data), do: data, else: encode_signed(data)
         serialize_string(bin)
