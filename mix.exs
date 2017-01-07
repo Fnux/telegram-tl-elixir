@@ -41,7 +41,7 @@ defmodule TL.Mixfile do
   defp package do
     [
      name: :telegram_tl,
-     files: ["lib", "priv", "mix.exs", "README*", "readme*", "LICENSE*", "license*"],
+     files: ["lib", "priv", "mix.exs", "README*", "LICENSE*"],
      maintainers: ["Timothée Floure"],
      licenses: ["MIT"],
      links: %{"GitHub" => "https://github.com/Fnux/telegram-tl-elixir"}]
