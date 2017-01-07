@@ -1,5 +1,6 @@
 defmodule TL.Parse do
   alias TL.Schema
+  import TL.Binary
 
   @moduledoc false
 
@@ -161,18 +162,4 @@ defmodule TL.Parse do
       {4, str_len, 4 + str_len + padding }
     end
   end
-
-  # Split a binary
-  defp binary_split(binary, index) do
-    left = :binary.part binary, 0, index
-    right = :binary.part binary, index, byte_size(binary) - index
-    {left, right}
-  end
-
-  # Decode a signed integer
-  def decode_signed(binary) do
-    binary_length = byte_size binary
-    <<int::signed-size(binary_length)-unit(8)>> = binary
-    int
-  end
-end
+ end

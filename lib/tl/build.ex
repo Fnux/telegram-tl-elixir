@@ -1,5 +1,6 @@
 defmodule TL.Build do
   alias TL.Schema
+  import TL.Binary
 
   @moduledoc false
 
@@ -67,10 +68,4 @@ defmodule TL.Build do
       <<254>> <> <<len::little-size(3)-unit(8)>> <> string <> <<0::size(padding)-unit(8)>>
     end
   end
-
-  # From int to bin
-  def encode_signed(int) do
-    size = (:math.log2(abs(int)) + 1) / 8.0 |> Float.ceil |> round
-    <<int::signed-size(size)-unit(8)>>
-  end
-end
+ end
