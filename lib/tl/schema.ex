@@ -6,9 +6,9 @@ defmodule TL.Schema do
   [core.telegram.org/schema](https://core.telegram.org/schema)).
   """
 
-  @tl "priv/mtproto.json"
+  @tl "mtproto.json"
   @api_layer 23
-  @api "priv/api-layer-#{@api_layer}.json"
+  @api "api-layer-#{@api_layer}.json"
 
   @doc """
     Return the version of the API layer used.
@@ -19,7 +19,8 @@ defmodule TL.Schema do
     Return the MTProto TL-schema as a map.
   """
   def tl do
-    {:ok, tl_schema_json} = File.read @tl
+    path = Path.join(:code.priv_dir(:telegram_tl), @tl)
+    {:ok, tl_schema_json} = File.read path
     {:ok, tl_schema} = JSON.decode tl_schema_json
     tl_schema
   end
@@ -29,7 +30,8 @@ defmodule TL.Schema do
     get the layer version.
   """
   def api do
-    {:ok, api_schema_json} = File.read @api
+    path = Path.join(:code.priv_dir(:telegram_tl), @api)
+    {:ok, api_schema_json} = File.read path
     {:ok, api_schema} = JSON.decode api_schema_json
     api_schema
   end
