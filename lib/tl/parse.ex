@@ -50,9 +50,17 @@ defmodule TL.Parse do
   defp deserialize(data, type, :return_tail) do
     case type do
     # Basic types
-      :int ->
+      :meta32 ->
         {head, tail} = binary_split(data, 4)
         <<value::signed-size(4)-little-unit(8)>> = head
+        {value, tail}
+      :meta64 ->
+        {head, tail} = binary_split(data, 8)
+        <<value::signed-little-size(8)-unit(8)>> = head
+        {value, tail}
+      :int ->
+        {head, tail} = binary_split(data, 4)
+        <<value::signed-big-size(4)-unit(8)>> = head
         {value, tail}
       :int64 ->
         {head, tail} = binary_split(data, 8)

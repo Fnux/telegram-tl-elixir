@@ -38,6 +38,8 @@ defmodule TL do
   @doc """
   Serialize an object given its type. Available types :
 
+    * `:meta32`
+    * `:meta64`
     * `:int`
     * `:int64`
     * `:int128`
@@ -61,6 +63,8 @@ defmodule TL do
   @doc """
     Deserialize an object given its type. Available types :
 
+    * `:meta32`
+    * `:meta64`
     * `:int`
     * `:int64`
     * `:int128`
