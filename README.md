@@ -5,4 +5,5 @@ This library allows you to serialize and deserialize elements of the
 designed to be used by
 [telegram-mt-elixir](https://github.com/Fnux/telegram-mt-elixir).
 
-The documentation is available [here](https://hexdocs.pm/telegram_tl/TL.html).
+The package is [on hex.pm](https://hex.pm/packages/telegram_tl) and the
+documentation is available [here](https://hexdocs.pm/telegram_tl/TL.html).

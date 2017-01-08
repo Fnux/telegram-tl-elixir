@@ -1,6 +1,6 @@
 defmodule TL.Binary do
   @moduledoc """
-    @TODO
+    A few methods to work with binaries.
   """
 
   @doc """
