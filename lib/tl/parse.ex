@@ -125,12 +125,12 @@ defmodule TL.Parse do
          |> String.to_atom
 
          # check vector id, size & offset
-         vector = :binary.part(data, 0, 4) |> deserialize(:int)
+         vector = :binary.part(data, 0, 4) |> deserialize(:meta32)
          {size, offset} =
            if (vector == 0x1cb5c415) do
-             {:binary.part(data, 4, 4) |> deserialize(:int), 8}
+             {:binary.part(data, 4, 4) |> deserialize(:meta32), 8}
            else
-             {:binary.part(data, 0, 4) |> deserialize(:int), 4}
+             {:binary.part(data, 0, 4) |> deserialize(:meta32), 4}
            end
 
            # {value, tail}
