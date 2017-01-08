@@ -90,7 +90,7 @@ defmodule TL.Parse do
 
         # Bytes are handled as strings
       :bytes ->
-        deserialize(:pack, data, :string)
+        deserialize(data, :string, :return_tail)
 
         # Anything else. Either a vector or a boxed type
       _ ->
@@ -140,7 +140,7 @@ defmodule TL.Parse do
   defp deserialize(meta, data, size, type, values \\ [])
   defp deserialize(:vector, tail, 0, _, values), do: {values, tail}
   defp deserialize(:vector, data, size, type, values) do
-    {value, tail} = deserialize(:pack, data, type)
+    {value, tail} = deserialize(data, type, :return_tail)
     values = values ++ [value]
 
     # loop
