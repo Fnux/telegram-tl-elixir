@@ -60,7 +60,7 @@ defmodule TL.Parse do
         {value, tail}
       :int ->
         {head, tail} = binary_split(data, 4)
-        <<value::signed-big-size(4)-unit(8)>> = head
+        <<value::signed-little-size(4)-unit(8)>> = head
         {value, tail}
       :int64 ->
         {head, tail} = binary_split(data, 8)
