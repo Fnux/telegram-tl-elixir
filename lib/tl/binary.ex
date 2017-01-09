@@ -8,7 +8,7 @@ defmodule TL.Binary do
     binary digit representation.
   """
   def encode_signed(int) do
-    size = (:math.log2(abs(int)) + 1) / 8.0 |> Float.ceil |> round
+    size = (:math.log2(abs(int))) / 8.0 |> Float.ceil |> round
     <<int::signed-size(size)-unit(8)>>
   end
 

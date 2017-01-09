@@ -52,7 +52,7 @@ defmodule TL.Parse do
     # Basic types
       :meta32 ->
         {head, tail} = binary_split(data, 4)
-        <<value::signed-size(4)-little-unit(8)>> = head
+        <<value::signed-little-size(4)-unit(8)>> = head
         {value, tail}
       :meta64 ->
         {head, tail} = binary_split(data, 8)
@@ -72,7 +72,7 @@ defmodule TL.Parse do
         {value, tail}
       :int256 ->
         {head, tail} = binary_split(data, 32)
-        <<value::signed-big-size(16)-unit(8)>> = head
+        <<value::signed-big-size(32)-unit(8)>> = head
         {value, tail}
       :long ->
         {head, tail} = binary_split(data, 8)
