@@ -4,10 +4,10 @@ defmodule TL.Parse do
 
   @moduledoc false
 
-  def decode(container, content) do
+  def decode(container, content, key \\ "id") do
     container = if is_integer(container), do: Integer.to_string(container),
       else: container
-    {:match, description} = Schema.search "id", container
+    {:match, description} = Schema.search key, container
     expected_params = description |> Map.get("params")
 
     {map, tail} = extract(expected_params, content)
@@ -106,8 +106,8 @@ defmodule TL.Parse do
   defp deserialize(:boxed, data, type) do
     type = Atom.to_string(type) |> String.replace("%","")
     {map, tail} = unless (type == "Object") do
-      container = type # "Ojbect"
-      decode(container, data)
+      container = type |> String.downcase
+      decode(container, data, "method_or_predicate")
     else
       container = :binary.part(data, 0, 4) |> deserialize(:int)
       content = :binary.part(data, 4, byte_size(data) - 4)
@@ -172,4 +172,4 @@ defmodule TL.Parse do
       {4, str_len, 4 + str_len + padding }
     end
   end
- end
+end
