@@ -7,7 +7,12 @@ defmodule TL.Parse do
   def decode(container, content, key \\ "id") do
     container = if is_integer(container), do: Integer.to_string(container),
       else: container
-    {:match, description} = Schema.search key, container
+
+    {status, description} = Schema.search key, container
+    if status != :match do
+      raise "Parser: unable to find container #{container} in the Schema!"
+    end
+
     expected_params = description |> Map.get("params")
 
     {map, tail} = extract(expected_params, content)

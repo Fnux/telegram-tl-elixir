@@ -45,6 +45,7 @@ defmodule TL.Build do
         bin =
           if (is_binary data), do: data, else: encode_signed(data)
         serialize_string(bin)
+      _ -> data
     end
   end
 
