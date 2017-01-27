@@ -110,14 +110,25 @@ defmodule TL.Parse do
   # Deserialize a boxed element.
   defp deserialize(:boxed, data, type) do
     type = Atom.to_string(type) |> String.replace("%","")
-    {map, tail} = unless (type == "Object") do
-      container = type |> String.downcase
-      decode(container, data, "method_or_predicate")
-    else
-      container = :binary.part(data, 0, 4) |> deserialize(:int)
-      content = :binary.part(data, 4, byte_size(data) - 4)
-      decode(container, content)
-    end
+    {map, tail} =
+      case type do
+        "Object" ->
+          container = :binary.part(data, 0, 4) |> deserialize(:int)
+          content = :binary.part(data, 4, byte_size(data) - 4)
+          decode(container, content)
+        "Bool" ->
+          value = :binary.part(data, 0, 4) |> deserialize(:int)
+          tail = :binary.part(data, 4,  byte_size(data) - 4)
+          value = case value do
+            -1132882121 -> false # boolFalse
+            -1720552011 -> true # boolTrue
+            _ -> :parsing_error
+          end
+          {value, tail}
+        _ ->
+          container = type |> String.downcase
+          decode(container, data, "method_or_predicate")
+      end
 
     {map, tail}
   end
