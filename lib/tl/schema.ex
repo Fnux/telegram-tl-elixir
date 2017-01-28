@@ -58,16 +58,13 @@ defmodule TL.Schema do
   end
 
   defp search_schema(key, value, schema) do
-    method = search_methods(key, value, schema)
-    if is_nil(method) do
-      constructor = search_constructors(key, value, schema)
-      if is_nil(constructor) do
-        {:nothing, nil}
-      else
-        {:match, constructor}
-      end
+    methods = search_methods(key, value, schema)
+    constructors = search_constructors(key, value, schema)
+    result = methods ++ constructors
+    if Enum.empty? result do
+      {:nothing, []}
     else
-      {:match, method}
+      {:match, result}
     end
   end
 
@@ -84,9 +81,8 @@ defmodule TL.Schema do
   end
 
   defp match(key, value, schema) do
-    description = Enum.filter schema, fn
+    Enum.filter schema, fn
       x -> Map.get(x, key) == value
     end
-    if Enum.empty?(description), do: nil, else: List.first(description)
   end
 end

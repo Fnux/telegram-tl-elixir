@@ -6,12 +6,11 @@ defmodule TL.Parse do
 
   def decode(container, content, key \\ "id") do
     container = if is_integer(container), do: Integer.to_string(container),
-      else: container
+  else: container
 
-    {status, description} = Schema.search key, container
-    if status != :match do
-      raise "Parser: unable to find container #{container} in the Schema!"
-    end
+  {status, result} = Schema.search key, container
+  if status == :match do
+    description = result |> List.first
 
     expected_params = description |> Map.get("params")
 
@@ -26,6 +25,10 @@ defmodule TL.Parse do
     map = map |> Map.put(:name, name)
 
     {map, tail}
+
+    else
+      {:error, "Unable to find container #{container} in the Schema!"}
+    end
   end
 
   # Extract
@@ -116,18 +119,10 @@ defmodule TL.Parse do
           container = :binary.part(data, 0, 4) |> deserialize(:int)
           content = :binary.part(data, 4, byte_size(data) - 4)
           decode(container, content)
-        "Bool" ->
-          value = :binary.part(data, 0, 4) |> deserialize(:int)
-          tail = :binary.part(data, 4,  byte_size(data) - 4)
-          value = case value do
-            -1132882121 -> false # boolFalse
-            -1720552011 -> true # boolTrue
-            _ -> :parsing_error
-          end
-          {value, tail}
         _ ->
-          container = type |> String.downcase
-          decode(container, data, "method_or_predicate")
+          container = :binary.part(data, 0, 4) |> deserialize(:int)
+          content = :binary.part(data, 4, byte_size(data) - 4)
+          decode(container, content, "id")
       end
 
     {map, tail}

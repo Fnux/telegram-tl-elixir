@@ -5,7 +5,8 @@ defmodule TL.Build do
   @moduledoc false
 
   def encode(container, content) do
-    {:match, description} = Schema.search "method_or_predicate", container
+    {:match, result} = Schema.search "method_or_predicate", container
+    description = result |> List.first
     expected_params = description |> Map.get("params")
 
     # Map values to their types
