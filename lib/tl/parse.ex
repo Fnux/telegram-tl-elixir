@@ -27,7 +27,7 @@ defmodule TL.Parse do
     {map, tail}
 
     else
-      {:error, "Unable to find container #{container} in the Schema!"}
+      {{:error, "Unable to find container #{container} in the Schema!"}, content}
     end
   end
 
@@ -133,7 +133,8 @@ defmodule TL.Parse do
   # Extract internal type (:Vector<type>)
   type = Atom.to_string(type) |> String.split(~r{<|>})
          |> Enum.at(1)
-         |> String.to_atom
+         |> String.replace("%","")
+         |> String.downcase
 
          # check vector id, size & offset
          vector = :binary.part(data, 0, 4) |> deserialize(:meta32)
@@ -151,7 +152,7 @@ defmodule TL.Parse do
   defp deserialize(meta, data, size, type, values \\ [])
   defp deserialize(:vector, tail, 0, _, values), do: {values, tail}
   defp deserialize(:vector, data, size, type, values) do
-    {value, tail} = deserialize(data, type, :return_tail)
+    {value, tail} = decode(type, data, "method_or_predicate")
     values = values ++ [value]
 
     # loop
