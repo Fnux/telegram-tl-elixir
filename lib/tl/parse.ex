@@ -138,11 +138,11 @@ defmodule TL.Parse do
 
          # check vector id, size & offset
          vector = :binary.part(data, 0, 4) |> deserialize(:meta32)
-         {size, offset} =
-           if (vector == 0x1cb5c415) do
-             {:binary.part(data, 4, 4) |> deserialize(:meta32), 8}
+         {size, offset, type} =
+           if (vector == 0x1cb5c415) do # vector long
+             {:binary.part(data, 4, 4) |> deserialize(:meta32), 8, :long}
            else
-             {:binary.part(data, 0, 4) |> deserialize(:meta32), 4}
+             {:binary.part(data, 0, 4) |> deserialize(:meta32), 4, type}
            end
 
            # {value, tail}
@@ -152,7 +152,11 @@ defmodule TL.Parse do
   defp deserialize(meta, data, size, type, values \\ [])
   defp deserialize(:vector, tail, 0, _, values), do: {values, tail}
   defp deserialize(:vector, data, size, type, values) do
-    {value, tail} = decode(type, data, "method_or_predicate")
+    {value, tail} = if is_atom(type) do
+      deserialize(data, type, :return_tail)
+    else
+      decode(type, data, "method_or_predicate")
+    end
     values = values ++ [value]
 
     # loop
