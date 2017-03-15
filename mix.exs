@@ -3,7 +3,7 @@ defmodule TL.Mixfile do
 
   def project do
     [app: :telegram_tl,
-     version: "0.0.4-alpha",
+     version: "0.0.5-alpha",
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
