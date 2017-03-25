@@ -170,12 +170,18 @@ defmodule TL.Parse do
   end
 
   # Deserialize a boxed element.
-  defp unbox(:object, data, _type) do
-    #type = Atom.to_string(type) |> String.replace("%","")
+  defp unbox(:object, data, type) do
+    type = Atom.to_string(type) |> String.replace("%","")
 
-    container = :binary.part(data, 0, 4) |> deserialize(:int)
-    content = :binary.part(data, 4, byte_size(data) - 4)
-    {map, tail} = decode(container, content)
+    {map, tail} = case type do
+      "Object" ->
+        container = :binary.part(data, 0, 4) |> deserialize(:int)
+        content = :binary.part(data, 4, byte_size(data) - 4)
+        decode(container, content, "id")
+      _ ->
+        content = :binary.part(data, 0, byte_size(data) - 0)
+        decode(type, content, "method_or_predicate")
+    end
 
     output = process(:object, map)
     {output, tail}
@@ -188,10 +194,20 @@ defmodule TL.Parse do
          |> Enum.at(1)
          |> String.replace("%","")
          |> String.downcase
+         |> String.to_atom
 
     # check vector id, size & offset
-    count = :binary.part(data, 0, 4) |> deserialize(:int)
-    value = :binary.part(data, 4, byte_size(data) - 4)
+    vector = :binary.part(data, 0, 4) |> deserialize(:int)
+
+    # WTF!?
+    {count, offset} =
+      if (vector == 0x1cb5c415) do
+        {:binary.part(data, 4, 4) |> deserialize(:int), 8}
+      else
+        {:binary.part(data, 0, 4) |> deserialize(:int), 4}
+      end
+
+    value = :binary.part(data, offset, byte_size(data) - offset)
 
     # {value, tail}
     unbox(:vector, value, type, count, [])

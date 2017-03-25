@@ -30,8 +30,8 @@ defmodule TLTest do
       name: "message", seqno: 2}], name: "msg_container"}
 
     {output, tail} = TL.parse(container, content)
-    assert tail == <<>>
     assert output == expected
+    assert tail == <<>>
   end
 
   test "Parse : ResPQ" do
@@ -47,7 +47,7 @@ defmodule TLTest do
       server_public_key_fingerprints: [14101943622620965665]}
 
     {output, tail} = TL.parse(container, content)
-    assert tail == <<>>
     assert output == expected
+    assert tail == <<>>
   end
 end
