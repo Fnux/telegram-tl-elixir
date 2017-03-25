@@ -33,4 +33,21 @@ defmodule TLTest do
     assert tail == <<>>
     assert output == expected
   end
+
+  test "Parse : ResPQ" do
+    container = 85337187
+    content = <<0, 45, 204, 54, 213, 197, 55, 120, 114, 180, 51, 112, 91, 197,
+    26, 130, 129, 171, 97, 96, 180, 148, 233, 74, 1, 208, 216, 141, 158, 248,
+    20, 35, 8, 31, 88, 126, 216, 5, 53, 225, 107, 0, 0, 0, 21, 196, 181, 28, 1,
+    0, 0, 0, 33, 107, 232, 108, 2, 43, 180, 195>>
+
+    expected = %{name: "resPQ", nonce: 237795314672715384766303660679699074,
+      pq: <<31, 88, 126, 216, 5, 53, 225, 107>>,
+      server_nonce: -167922097646352380287171759857591643101,
+      server_public_key_fingerprints: [14101943622620965665]}
+
+    {output, tail} = TL.parse(container, content)
+    assert tail == <<>>
+    assert output == expected
+  end
 end
