@@ -50,4 +50,15 @@ defmodule TLTest do
     assert output == expected
     assert tail == <<>>
   end
+
+  test "Parse : Boolean" do
+    #BoolTrue
+    output = TL.Parse.deserialize(<<0xb5, 0x75, 0x72, 0x99>>, :Bool)
+             |> Map.get(:name)
+    assert output == "boolTrue"
+    # BoolFalse
+    output = TL.Parse.deserialize(<<0x37, 0x97, 0x79, 0xbc>>, :Bool)
+             |> Map.get(:name)
+    assert output == "boolFalse"
+  end
 end

@@ -173,12 +173,12 @@ defmodule TL.Parse do
   defp unbox(:object, data, type) do
     type = Atom.to_string(type) |> String.replace("%","")
 
-    {map, tail} = case type do
-      "Object" ->
+    {map, tail} = cond do
+      type in ["Object", "Bool"] ->
         container = :binary.part(data, 0, 4) |> deserialize(:int)
         content = :binary.part(data, 4, byte_size(data) - 4)
         decode(container, content, "id")
-      _ ->
+      true ->
         content = :binary.part(data, 0, byte_size(data) - 0)
         decode(type, content, "method_or_predicate")
     end
