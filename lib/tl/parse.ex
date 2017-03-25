@@ -4,28 +4,34 @@ defmodule TL.Parse do
 
   @moduledoc false
 
+  ###############################
+  # Process "structured" messages
+
   def decode(container, content, key \\ "id") do
-    container = if is_integer(container), do: Integer.to_string(container),
-  else: container
-
-  {status, result} = Schema.search key, container
-  if status == :match do
-    description = result |> List.first
-
-    expected_params = description |> Map.get("params")
-
-    {map, tail} = extract(expected_params, content)
-
-    name = if Map.has_key?(description, "predicate") do
-      Map.get description, "predicate"
+    # Cast the container to a string (?)
+    container = if is_integer(container) do
+      Integer.to_string(container)
     else
-      Map.get description, "method"
+      container
     end
 
-    map = map |> Map.put(:name, name)
+    {status, result} = Schema.search key, container
+    if status == :match do
+      description = result |> List.first
 
-    {map, tail}
+      expected_params = description |> Map.get("params")
 
+      {map, tail} = extract(expected_params, content)
+
+      # Add the object of the predicate to the returned map
+      name = if Map.has_key?(description, "predicate") do
+        Map.get description, "predicate"
+      else
+        Map.get description, "method"
+      end
+      map = map |> Map.put(:name, name)
+
+      {map, tail}
     else
       {{:error, "Unable to find container #{container} in the Schema!"}, content}
     end
@@ -46,6 +52,9 @@ defmodule TL.Parse do
     # Iterate on the next element
     extract params_tail, data_tail, map
   end
+
+  #################
+  # Deserialization
 
   # Deserialize
   def deserialize(value, type) do
@@ -95,73 +104,18 @@ defmodule TL.Parse do
         string = :binary.part(data, prefix_length, string_length)
         tail = :binary.part(data, total_length, byte_size(data) - total_length)
         {string, tail}
-
-        # Bytes are handled as strings
+      # Bytes are handled as strings
       :bytes ->
         deserialize(data, :string, :return_tail)
-
-        # Anything else. Either a vector or a boxed type
+      :vector ->
+        unbox(:vector, data)
+      # Anything else.
       _ ->
-        if Atom.to_string(type) =~ ~r/^vector/ui do
-          deserialize(:vector, data, type)
-        else
-          deserialize(:boxed, data, type)
+        cond do
+          Atom.to_string(type) =~ ~r/^vector/ui -> unbox(:vector, data, type)
+          true -> unbox(:object, data, type)
         end
     end
-  end
-
-  # Deserialize a boxed element.
-  defp deserialize(:boxed, data, type) do
-    type = Atom.to_string(type) |> String.replace("%","")
-    {map, tail} =
-      case type do
-        "Object" ->
-          container = :binary.part(data, 0, 4) |> deserialize(:int)
-          content = :binary.part(data, 4, byte_size(data) - 4)
-          decode(container, content)
-        _ ->
-          container = :binary.part(data, 0, 4) |> deserialize(:int)
-          content = :binary.part(data, 4, byte_size(data) - 4)
-          decode(container, content, "id")
-      end
-
-    {map, tail}
-  end
-
-  # Deserialize a vector
-  defp deserialize(:vector, data, type) do
-  # Extract internal type (:Vector<type>)
-  type = Atom.to_string(type) |> String.split(~r{<|>})
-         |> Enum.at(1)
-         |> String.replace("%","")
-         |> String.downcase
-
-         # check vector id, size & offset
-         vector = :binary.part(data, 0, 4) |> deserialize(:meta32)
-         {size, offset, type} =
-           if (vector == 0x1cb5c415) do # vector long
-             {:binary.part(data, 4, 4) |> deserialize(:meta32), 8, :long}
-           else
-             {:binary.part(data, 0, 4) |> deserialize(:meta32), 4, type}
-           end
-
-           # {value, tail}
-           deserialize(:vector, :binary.part(data, offset, byte_size(data) - offset), size, type)
-  end
-
-  defp deserialize(meta, data, size, type, values \\ [])
-  defp deserialize(:vector, tail, 0, _, values), do: {values, tail}
-  defp deserialize(:vector, data, size, type, values) do
-    {value, tail} = if is_atom(type) do
-      deserialize(data, type, :return_tail)
-    else
-      decode(type, data, "method_or_predicate")
-    end
-    values = values ++ [value]
-
-    # loop
-    size = size - 1
-    deserialize(:vector, tail, size, type, values)
   end
 
   # Compute the prefix, content and total (including prefix and padding) length
@@ -187,5 +141,69 @@ defmodule TL.Parse do
       padding = p.(div)
       {4, str_len, 4 + str_len + padding }
     end
+  end
+
+  ####################################
+  # Deserialization of "evolued" types
+
+  def process(:object, map) do
+    name = map |> Map.get(:name)
+    case name do
+      "gzip_packed" ->
+        gzip = Map.get(map, :packed_data)
+        data = :zlib.gunzip(gzip)
+
+        container = :binary.part(data, 0, 4) |> deserialize(:int)
+        content = :binary.part(data, 4, byte_size(data) - 4)
+        {unpacked, __} = deserialize(container, content)
+        %{map | packed_data: unpacked}
+      _ -> map
+    end
+  end
+
+  # Vector deserialization
+  def unbox(:vector, data) do
+    count = :binary.part(data, 0, 4) |> deserialize(:int)
+    type = :binary.part(data, 4, 4) |> deserialize(:int)
+    value = :binary.part(data, 8, byte_size(data - 8))
+    unbox(:vector, value, type, count, [])
+  end
+
+  # Deserialize a boxed element.
+  defp unbox(:object, data, _type) do
+    #type = Atom.to_string(type) |> String.replace("%","")
+
+    container = :binary.part(data, 0, 4) |> deserialize(:int)
+    content = :binary.part(data, 4, byte_size(data) - 4)
+    {map, tail} = decode(container, content)
+
+    output = process(:object, map)
+    {output, tail}
+  end
+
+  # Vector deserialization
+  defp unbox(:vector, data, type) do
+    # Extract internal type (:Vector<type>)
+    type = Atom.to_string(type) |> String.split(~r{<|>})
+         |> Enum.at(1)
+         |> String.replace("%","")
+         |> String.downcase
+
+    # check vector id, size & offset
+    count = :binary.part(data, 0, 4) |> deserialize(:int)
+    value = :binary.part(data, 4, byte_size(data) - 4)
+
+    # {value, tail}
+    unbox(:vector, value, type, count, [])
+  end
+
+  defp unbox(:vector, tail, _, 0, output), do: {output, tail}
+  defp unbox(:vector, data, type, count, output) do
+    {map, tail} = cond do
+      is_atom(type) -> deserialize(data, type, :return_tail)
+      is_binary(type) -> decode(type, data, "method_or_predicate")
+      true -> decode(data, type)
+    end
+    unbox(:vector, tail, type, count - 1, (output ++ [map]))
   end
 end
