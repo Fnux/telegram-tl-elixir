@@ -21,14 +21,20 @@ defmodule TL.Parse do
 
       expected_params = description |> Map.get("params")
 
-      {map, tail} = extract(expected_params, content)
-
-      # Add the object of the predicate to the returned map
       name = if Map.has_key?(description, "predicate") do
         Map.get description, "predicate"
       else
         Map.get description, "method"
       end
+
+      {map, tail} = case name do
+        "vector" -> 
+          {list, tail} = deserialize(content, :vector, :return_tail)
+          {%{value: list}, tail}
+        _ -> extract(expected_params, content)
+      end
+
+      # Add the object of the predicate to the returned map
       map = map |> Map.put(:name, name)
 
       {map, tail}
@@ -148,6 +154,7 @@ defmodule TL.Parse do
 
   def process(:object, map) do
     name = map |> Map.get(:name)
+
     case name do
       "gzip_packed" ->
         gzip = Map.get(map, :packed_data)
@@ -164,9 +171,8 @@ defmodule TL.Parse do
   # Vector deserialization
   def unbox(:vector, data) do
     count = :binary.part(data, 0, 4) |> deserialize(:int)
-    type = :binary.part(data, 4, 4) |> deserialize(:int)
-    value = :binary.part(data, 8, byte_size(data - 8))
-    unbox(:vector, value, type, count, [])
+    value = :binary.part(data, 4, byte_size(data) - 4)
+    unbox(:vector, value, count, [])
   end
 
   # Deserialize a boxed element.
@@ -174,7 +180,7 @@ defmodule TL.Parse do
     type = Atom.to_string(type) |> String.replace("%","")
 
     {map, tail} = cond do
-      type in ["Object", "Bool"] ->
+      type in ["Object", "Bool", "UserStatus"] ->
         container = :binary.part(data, 0, 4) |> deserialize(:int)
         content = :binary.part(data, 4, byte_size(data) - 4)
         decode(container, content, "id")
@@ -210,16 +216,30 @@ defmodule TL.Parse do
     value = :binary.part(data, offset, byte_size(data) - offset)
 
     # {value, tail}
-    unbox(:vector, value, type, count, [])
+    unbox(:vector, value, count, [], type)
   end
 
-  defp unbox(:vector, tail, _, 0, output), do: {output, tail}
-  defp unbox(:vector, data, type, count, output) do
-    {map, tail} = cond do
+  defp unbox(_, _, _, _, type \\ :unknow) # header
+  defp unbox(:vector, tail, 0, output, _), do: {output, tail}
+  defp unbox(:vector, data, count, output, type) do
+    unless type == :unknow do
+      {map, tail} = dispatch(:vector, type, data)
+      unbox(:vector, tail, count - 1, (output ++ [map]), type)
+    else
+      container = :binary.part(data, 0, 4) |> deserialize(:int)
+      content = :binary.part(data, 4, byte_size(data) - 4)
+      {map, tail} = dispatch(:vector, container, content)
+
+      unbox(:vector, tail, count - 1, (output ++ [map]))
+    end
+  end
+
+  defp dispatch(:vector, type, data) do
+    # returns {map, tail}
+    cond do
       is_atom(type) -> deserialize(data, type, :return_tail)
       is_binary(type) -> decode(type, data, "method_or_predicate")
-      true -> decode(data, type)
+      true -> decode(type, data)
     end
-    unbox(:vector, tail, type, count - 1, (output ++ [map]))
   end
 end
