@@ -180,13 +180,13 @@ defmodule TL.Parse do
     type = Atom.to_string(type) |> String.replace("%","")
 
     {map, tail} = cond do
-      type in ["Object", "Bool", "UserStatus"] ->
+      type in ["message"] -> # something wrong about that (WTF!?)
+        content = :binary.part(data, 0, byte_size(data) - 0)
+        decode(type, content, "method_or_predicate")
+      true ->
         container = :binary.part(data, 0, 4) |> deserialize(:int)
         content = :binary.part(data, 4, byte_size(data) - 4)
         decode(container, content, "id")
-      true ->
-        content = :binary.part(data, 0, byte_size(data) - 0)
-        decode(type, content, "method_or_predicate")
     end
 
     output = process(:object, map)
