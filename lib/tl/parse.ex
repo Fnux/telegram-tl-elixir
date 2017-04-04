@@ -162,7 +162,7 @@ defmodule TL.Parse do
 
         container = :binary.part(data, 0, 4) |> deserialize(:int)
         content = :binary.part(data, 4, byte_size(data) - 4)
-        {unpacked, __} = deserialize(container, content)
+        {unpacked, __} = decode(container, content)
         %{map | packed_data: unpacked}
       _ -> map
     end
