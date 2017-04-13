@@ -24,7 +24,7 @@ defmodule TL.Build do
     serialized_method = description
                         |> Map.get("id")
                         |> String.to_integer
-                        |> serialize(:meta32)
+                        |> serialize(:int)
 
     # Build the final payload
     serialized_method <> :binary.list_to_bin serialized_values
@@ -42,11 +42,15 @@ defmodule TL.Build do
       :long -> <<data::unsigned-little-size(8)-unit(8)>>
       :double -> <<data::signed-little-size(2)-unit(32)>>
       :string -> serialize_string(data)
-          :bytes ->
+      :bytes ->
         bin =
           if (is_binary data), do: data, else: encode_signed(data)
         serialize_string(bin)
-      _ -> data
+      _ ->
+        cond do
+          Atom.to_string(type) =~ ~r/^vector/ui -> box(:vector, data, type)
+          true -> data
+        end
     end
   end
 
@@ -70,5 +74,27 @@ defmodule TL.Build do
       padding = p.(div)
       <<254>> <> <<len::little-size(3)-unit(8)>> <> string <> <<0::size(padding)-unit(8)>>
     end
+  end
+
+  defp box(:vector, data, type) do
+    # Extract internal type (:Vector<type>)
+    type = Atom.to_string(type) |> String.split(~r{<|>})
+         |> Enum.at(1)
+         |> String.replace("%","")
+         |> String.downcase
+         |> String.to_atom
+
+    # get vector predicate
+    {:match, result} = Schema.search("predicate", "vector")
+    vector = result |> List.first
+                    |> Map.get("id")
+                    |> String.to_integer
+                    |> serialize(:int)
+
+    size = Enum.count(data) |> serialize(:int)
+    serialized_data = (for e <- data, do: serialize(e, type)) |> Enum.join
+
+    # Return serialized vector
+    vector <> size <> serialized_data
   end
  end
