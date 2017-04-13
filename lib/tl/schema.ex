@@ -21,8 +21,7 @@ defmodule TL.Schema do
   def tl do
     path = Path.join(:code.priv_dir(:telegram_tl), @tl)
     {:ok, tl_schema_json} = File.read path
-    {:ok, tl_schema} = JSON.decode tl_schema_json
-    tl_schema
+    Poison.Parser.parse! tl_schema_json
   end
 
   @doc """
@@ -32,8 +31,7 @@ defmodule TL.Schema do
   def api do
     path = Path.join(:code.priv_dir(:telegram_tl), @api)
     {:ok, api_schema_json} = File.read path
-    {:ok, api_schema} = JSON.decode api_schema_json
-    api_schema
+    Poison.Parser.parse! api_schema_json
   end
 
   @doc """

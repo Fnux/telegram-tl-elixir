@@ -26,7 +26,7 @@ defmodule TL.Mixfile do
 
   # Depedencies. Type "mix help deps" for more examples and options
   defp deps do
-    [{:json, "~> 1.0.0"}, {:ex_doc, "~> 0.14.5", only: :dev}]
+    [{:poison, "~> 3.0"}, {:ex_doc, "~> 0.14.5", only: :dev}]
   end
 
   defp description do
