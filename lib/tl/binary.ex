@@ -1,11 +1,10 @@
 defmodule TL.Binary do
   @moduledoc """
-    A few methods to work with binaries.
+    Helpers to work with binaries.
   """
 
   @doc """
-    Converts a (signed) integer to the smallest possible representation in a
-    binary digit representation.
+    Converts a (signed) integer to its binary representation.
   """
   def encode_signed(int) do
     size = (:math.log2(abs(int))) / 8.0 |> Float.ceil |> round
@@ -13,8 +12,8 @@ defmodule TL.Binary do
   end
 
   @doc """
-    Converts the binary digit representation (of a signed integer) to a signed
-    integer.
+    Converts the binary representation (of a signed integer) to its decimal
+    representation.
   """
   def decode_signed(binary) do
     binary_length = byte_size binary
@@ -23,7 +22,7 @@ defmodule TL.Binary do
   end
 
   @doc """
-    Split a binary in two at the given index.
+    Split a binary at the given index.
   """
   def binary_split(binary, index) do
     left = :binary.part binary, 0, index

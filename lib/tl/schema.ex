@@ -16,7 +16,7 @@ defmodule TL.Schema do
   def api_layer_version, do: @api_layer
 
   @doc """
-    Return the MTProto TL-schema as a map.
+    Parse the MTProto TL-schema and returns a map.
   """
   def tl do
     path = Path.join(:code.priv_dir(:telegram_tl), @tl)
@@ -25,8 +25,7 @@ defmodule TL.Schema do
   end
 
   @doc """
-    Return the API TL-schema as a map. Use `TL.Schema.api_layer_version/0` to
-    get the layer version.
+    Parse the Telegram API TL-schema and returns a map.
   """
   def api do
     path = Path.join(:code.priv_dir(:telegram_tl), @api)
@@ -36,6 +35,10 @@ defmodule TL.Schema do
 
   @doc """
     Search the schema(s).
+
+    * `key` - example : `"predicate"`
+    * `content` - example : `"ping"`
+    * `schema` - schema to search into, either `:tl`, `:api` or `:both` (default).
   """
   def search(key, content, schema \\ :both) do
     case schema do

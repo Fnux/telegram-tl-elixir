@@ -2,7 +2,7 @@ defmodule TL do
   @moduledoc """
   This library allows you to serialize and deserialize elements of the
   [TL Language](https://core.telegram.org/mtproto/TL). It was originally
-  designed to be used by
+  designed to be used with
   [telegram-mt-elixir](https://github.com/Fnux/telegram-mt-elixir).
   """
 
@@ -23,8 +23,6 @@ defmodule TL do
   [core.telegram.org/schema/mtproto](https://core.telegram.org/schema/mtproto)
   and [core.telegram.org/schema](https://core.telegram.org/schema).
 
-
-
   ## Examples
 
       iex> TL.parse 0x7abe77ec, <<154, 2, 0, 0, 0, 0, 0, 0>>
@@ -38,8 +36,6 @@ defmodule TL do
   @doc """
   Serialize an object given its type. Available types :
 
-    * `:meta32`
-    * `:meta64`
     * `:int`
     * `:int64`
     * `:int128`
@@ -48,7 +44,7 @@ defmodule TL do
     * `:float`
     * `:string`
     * `:bytes`
-    * `:vector` NOT_YET_IMPLEMENTED
+    * `:vector`
 
   ## Examples
 
@@ -63,8 +59,6 @@ defmodule TL do
   @doc """
     Deserialize an object given its type. Available types :
 
-    * `:meta32`
-    * `:meta64`
     * `:int`
     * `:int64`
     * `:int128`
@@ -73,8 +67,8 @@ defmodule TL do
     * `:float`
     * `:string`
     * `:bytes`
-    * `:vector` @TODO
-    * `:boxed` @TODO
+    * `:vector`
+    * `:boxed`
 
   ## Example
 
