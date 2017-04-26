@@ -3,7 +3,7 @@ defmodule TL.Mixfile do
 
   def project do
     [app: :telegram_tl,
-     version: "0.0.5-alpha",
+     version: "0.0.6-alpha",
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
@@ -26,7 +26,7 @@ defmodule TL.Mixfile do
 
   # Depedencies. Type "mix help deps" for more examples and options
   defp deps do
-    [{:poison, "~> 3.0"}, {:ex_doc, "~> 0.14.5", only: :dev}]
+    [{:poison, "~> 3.0"}, {:ex_doc, "~> 0.14", only: :dev}]
   end
 
   defp description do
