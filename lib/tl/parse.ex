@@ -91,7 +91,7 @@ defmodule TL.Parse do
         {value, tail}
       :long ->
         {head, tail} = binary_split(data, 8)
-        <<value::unsigned-little-size(8)-unit(8)>> = head
+        <<value::signed-little-size(8)-unit(8)>> = head
         {value, tail}
       :double ->
         {head, tail} = binary_split(data, 8)

@@ -37,7 +37,7 @@ defmodule TL.Build do
       :int64 -> <<data::signed-big-size(8)-unit(8)>>
       :int128 -> <<data::signed-big-size(16)-unit(8)>>
       :int256 -> <<data::signed-big-size(32)-unit(8)>>
-      :long -> <<data::unsigned-little-size(8)-unit(8)>>
+      :long -> <<data::signed-little-size(8)-unit(8)>>
       :double -> <<data::signed-little-size(2)-unit(32)>>
       :string -> serialize_string(data)
       :bytes ->
