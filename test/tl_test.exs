@@ -44,7 +44,7 @@ defmodule TLTest do
     expected = %{name: "resPQ", nonce: 237795314672715384766303660679699074,
       pq: <<31, 88, 126, 216, 5, 53, 225, 107>>,
       server_nonce: -167922097646352380287171759857591643101,
-      server_public_key_fingerprints: [14101943622620965665]}
+      server_public_key_fingerprints: [-4344800451088585951]}
 
     {output, tail} = TL.parse(container, content)
     assert output == expected
