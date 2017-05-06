@@ -34,24 +34,32 @@ defmodule TL.Schema do
   end
 
   @doc """
+  Search descriptors in the schema(s)
+
+    * `key`
+    * `container`
+  """
+  def search(key, container) do
+    {tl_match, tl_value} = search(key, container, :tl)
+    # If a match was found in the tl schema, return it. If not, search in
+    # the api schema.
+    if tl_match == :match do
+      {:match, tl_value}
+    else
+      {api_match, api_value} = search(key, container, :api)
+      if api_match == :match, do: {:match, api_value}, else: {:nothing, nil}
+    end
+  end
+
+  @doc """
     Search the schema(s).
 
     * `key` - example : `"predicate"`
     * `content` - example : `"ping"`
-    * `schema` - schema to search into, either `:tl`, `:api` or `:both` (default).
+    * `schema` - schema to search into, either `:tl` or `:api`.
   """
-  def search(key, content, schema \\ :both) do
+  def search(key, content, schema) do
     case schema do
-      :both ->
-        {tl_match, tl_value} = search(key, content, :tl)
-        # If a match was found in the tl schema, return it. If not, search in
-        # the api schema.
-          if tl_match == :match do
-            {:match, tl_value}
-          else
-            {api_match, api_value} = search(key, content, :api)
-            if api_match == :match, do: {:match, api_value}, else: {:nothing, nil}
-          end
       :tl -> search_schema(key, content, tl())
       :api -> search_schema(key, content, api())
       _ -> {:err, nil}

@@ -211,18 +211,31 @@ defmodule TL.Parse do
     unbox(:vector, value, count, [], type)
   end
 
-  defp unbox(_, _, _, _, type \\ :unknow) # header
+  defp unbox(_, _, _, _, type \\ :from_schema) # header
   defp unbox(:vector, tail, 0, output, _), do: {output, tail}
   defp unbox(:vector, data, count, output, type) do
-    unless type == :unknow do
-      {map, tail} = dispatch(:vector, type, data)
-      unbox(:vector, tail, count - 1, (output ++ [map]), type)
-    else
-      container = :binary.part(data, 0, 4) |> deserialize(:int)
-      content = :binary.part(data, 4, byte_size(data) - 4)
-      {map, tail} = dispatch(:vector, container, content)
+    # The `message` predicate exists in both the TL and API schemas --'
+    # This part is somewhat ugly but I suppose I still have to discover  a lot
+    # of special cases... Will figure out later.
+    case type do
+      :message -> # Workaround for get_dialogs
+        container = :binary.part(data, 0, 4) |> deserialize(:int)
+        {status, _} = Schema.search "id", Integer.to_string(container)
+        if status == :match do
+          unbox(:vector, data, count, output, :from_schema)
+        else # status == :nothing
+          {map, tail} = dispatch(:vector, type, data)
+          unbox(:vector, tail, count - 1, (output ++ [map]), type)
+        end
+      :from_schema -> # Search for the container in the schema
+        container = :binary.part(data, 0, 4) |> deserialize(:int)
+        content = :binary.part(data, 4, byte_size(data) - 4)
+        {map, tail} = dispatch(:vector, container, content)
 
-      unbox(:vector, tail, count - 1, (output ++ [map]))
+        unbox(:vector, tail, count - 1, (output ++ [map]))
+      _ ->
+        {map, tail} = dispatch(:vector, type, data)
+        unbox(:vector, tail, count - 1, (output ++ [map]), type)
     end
   end
 
