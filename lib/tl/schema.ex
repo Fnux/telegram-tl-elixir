@@ -1,4 +1,6 @@
 defmodule TL.Schema do
+  use GenServer
+
   @moduledoc """
   Parse and search the MTProto TL-schema (See
   [core.telegram.org/schema/mtproto](https://core.telegram.org/schema/mtproto))
@@ -9,6 +11,40 @@ defmodule TL.Schema do
   @tl "mtproto.json"
   @api_layer 23
   @api "api-layer-#{@api_layer}.json"
+  @name MTProtoSchemaStore
+
+  ### Schema store
+
+  @doc false
+  def start(_, _), do: TL.Schema.start_link()
+
+  @doc false
+  def start_link() do
+    GenServer.start_link(__MODULE__, [], name: @name)
+  end
+
+  @doc false
+  def init(_) do
+    {:ok, tl_raw} = Path.join(:code.priv_dir(:telegram_tl), @tl) |> File.read
+    {:ok, api_row} = Path.join(:code.priv_dir(:telegram_tl), @api) |> File.read
+    tl = Poison.Parser.parse! tl_raw
+    api = Poison.Parser.parse! api_row
+
+    state = %{tl: tl, api: api}
+    {:ok, state}
+  end
+
+  @doc false
+  def handle_call(:tl, _from, state) do
+    {:reply, state.tl, state}
+  end
+
+  @doc false
+  def handle_call(:api, _from, state) do
+    {:reply, state.api, state}
+  end
+
+  ### Public
 
   @doc """
     Return the version of the API layer used.
@@ -16,21 +52,17 @@ defmodule TL.Schema do
   def api_layer_version, do: @api_layer
 
   @doc """
-    Parse the MTProto TL-schema and returns a map.
+    Returns the MTProto TL-schema.
   """
   def tl do
-    path = Path.join(:code.priv_dir(:telegram_tl), @tl)
-    {:ok, tl_schema_json} = File.read path
-    Poison.Parser.parse! tl_schema_json
+    GenServer.call @name, :tl
   end
 
   @doc """
-    Parse the Telegram API TL-schema and returns a map.
+    Returns the Telegram API TL-schema.
   """
   def api do
-    path = Path.join(:code.priv_dir(:telegram_tl), @api)
-    {:ok, api_schema_json} = File.read path
-    Poison.Parser.parse! api_schema_json
+    GenServer.call @name, :api
   end
 
   @doc """
@@ -80,13 +112,13 @@ defmodule TL.Schema do
   defp search_methods(key, value, schema) do
     key = if (key == "method_or_predicate"), do: "method", else: key
     schema = Map.get(schema, "methods")
-  match(key, value, schema)
+    match(key, value, schema)
   end
 
   defp search_constructors(key, value, schema) do
     key = if (key == "method_or_predicate"), do: "predicate", else: key
     schema = Map.get(schema, "constructors")
-  match(key, value, schema)
+    match(key, value, schema)
   end
 
   defp match(key, value, schema) do
