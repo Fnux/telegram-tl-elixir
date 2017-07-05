@@ -1,9 +1,6 @@
 defmodule TL do
   @moduledoc """
-  This library allows you to serialize and deserialize elements of the
-  [TL Language](https://core.telegram.org/mtproto/TL). It was originally
-  designed to be used with
-  [telegram-mt-elixir](https://github.com/Fnux/telegram-mt-elixir).
+  Telegram TL : base module.
   """
 
   @doc """

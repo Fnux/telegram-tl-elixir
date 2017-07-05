@@ -15,7 +15,7 @@ defmodule TL.Mixfile do
      name: "Telegram TL",
      source_url: "https://github.com/fnux/telegram-tl-elixir",
      homepage_url: "http://github.com/fnux/telegram-tl-elixir",
-     docs: [main: "TL"]]
+     docs: [main: "readme", extras: ["README.md"]]]
   end
 
   # Type "mix help compile.app" for more information

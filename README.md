@@ -5,5 +5,19 @@ This library allows you to serialize and deserialize elements of the
 designed to be used by
 [telegram-mt-elixir](https://github.com/Fnux/telegram-mt-elixir).
 
-The package is [on hex.pm](https://hex.pm/packages/telegram_tl) and the
-documentation is available [here](https://hexdocs.pm/telegram_tl/TL.html).
+The package and its documentation are on
+[hex.pm](https://hex.pm/packages/telegram_tl).
+
+## Configuration
+
+If no configuration is specified, the
+[API layer 23](https://core.telegram.org/schema?layer=23) will be used.
+Although this library was only tested with the above layer version, you can
+specify a custom source in you `config.exs` :
+
+```
+config :telegram_tl, tl_path: "/path/to/mtproto.json",
+                     api_version: 23,
+                     api_path: "/path/to/api-layer-23.json"
+
+```
