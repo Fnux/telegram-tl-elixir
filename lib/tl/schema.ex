@@ -8,9 +8,9 @@ defmodule TL.Schema do
   [core.telegram.org/schema](https://core.telegram.org/schema)).
   """
 
-  @tl "mtproto.json"
-  @api_layer 23
-  @api "api-layer-#{@api_layer}.json"
+  @default_api_layer 23
+  @default_api_path Path.join(:code.priv_dir(:telegram_tl), "api-layer-23.json")
+  @default_tl_path Path.join(:code.priv_dir(:telegram_tl), "mtproto.json")
   @name MTProtoSchemaStore
 
   ### Schema store
@@ -25,8 +25,8 @@ defmodule TL.Schema do
 
   @doc false
   def init(_) do
-    {:ok, tl_raw} = Path.join(:code.priv_dir(:telegram_tl), @tl) |> File.read
-    {:ok, api_row} = Path.join(:code.priv_dir(:telegram_tl), @api) |> File.read
+    {:ok, tl_raw} = get_tl_path() |> File.read
+    {:ok, api_row} = get_api_path() |> File.read
     tl = Poison.Parser.parse! tl_raw
     api = Poison.Parser.parse! api_row
 
@@ -44,12 +44,27 @@ defmodule TL.Schema do
     {:reply, state.api, state}
   end
 
+  @doc false
+  def get_api_path do
+    config = Application.get_env(:telegram_tl, :api_path)
+    if config, do: config, else: @default_api_path
+  end
+
+  @doc false
+  def get_tl_path do
+    config = Application.get_env(:telegram_tl, :tl_path)
+    if config, do: config, else: @default_tl_path
+  end
+
   ### Public
 
   @doc """
     Return the version of the API layer used.
   """
-  def api_layer_version, do: @api_layer
+  def api_layer_version do
+    config = Application.get_env(:telegram_tl, :api_layer)
+    if config, do: config, else: @default_api_layer
+  end
 
   @doc """
     Returns the MTProto TL-schema.
