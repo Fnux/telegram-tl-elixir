@@ -171,8 +171,8 @@ defmodule TL.Parse do
   defp unbox(:object, data, type) do
     type = Atom.to_string(type) |> String.replace("%","")
 
-    {map, tail} = cond do
-      type in ["message"] -> # something wrong about that (WTF!?)
+    {map, tail} = cond do # bof
+      type in ["message", "future_salt"] ->
         content = :binary.part(data, 0, byte_size(data) - 0)
         decode(type, content, "method_or_predicate")
       true ->
