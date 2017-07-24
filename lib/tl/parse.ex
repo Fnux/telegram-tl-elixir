@@ -37,6 +37,13 @@ defmodule TL.Parse do
       # Add the object of the predicate to the returned map
       map = map |> Map.put(:name, name)
 
+      # parse objects such as gzip_packed
+      map = if Map.get(description, "type") == "Object" do
+        process(:object, map)
+      else
+        map
+      end
+
       {map, tail}
     else
       {{:error, "Unable to find container #{container} in the Schema!"}, content}
