@@ -188,8 +188,7 @@ defmodule TL.Parse do
         decode(container, content, "id")
     end
 
-    output = process(:object, map)
-    {output, tail}
+    {map, tail}
   end
 
   # Vector deserialization
