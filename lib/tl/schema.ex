@@ -8,8 +8,8 @@ defmodule TL.Schema do
   [core.telegram.org/schema](https://core.telegram.org/schema)).
   """
 
-  @default_api_layer 23
-  @default_api_path Path.join(:code.priv_dir(:telegram_tl), "api-layer-23.json")
+  @default_api_layer 57
+  @default_api_path Path.join(:code.priv_dir(:telegram_tl), "api-layer-57.json")
   @default_tl_path Path.join(:code.priv_dir(:telegram_tl), "mtproto.json")
   @name MTProtoSchemaStore
 
