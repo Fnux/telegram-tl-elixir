@@ -44,9 +44,12 @@ defmodule TL.Build do
         bin =
           if (is_binary data), do: data, else: encode_signed(data)
         serialize_string(bin)
+      :"#" ->
+        serialize(0,:int) # ¯\(ツ)/¯ (issue 3)
       _ ->
         cond do
           Atom.to_string(type) =~ ~r/^vector/ui -> box(:vector, data, type)
+          Atom.to_string(type) =~ ~r/^flags.\d\?[a-zA-Z]*$/ui -> <<>> # ¯\(ツ)/¯ (issue 3)
           true -> data
         end
     end

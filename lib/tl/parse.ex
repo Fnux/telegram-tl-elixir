@@ -78,6 +78,7 @@ defmodule TL.Parse do
   # Deserialize the first element of the binary (given its type). Return the
   # tail.
   defp deserialize(data, type, :return_tail) do
+    #IO.inspect {type, data}
     case type do
     # Basic types
       :int ->
@@ -114,10 +115,13 @@ defmodule TL.Parse do
         deserialize(data, :string, :return_tail)
       :vector ->
         unbox(:vector, data)
+      :"#" -> # issue 3
+        deserialize(data, :int, :return_tail)
       # Anything else.
       _ ->
         cond do
           Atom.to_string(type) =~ ~r/^vector/ui -> unbox(:vector, data, type)
+          Atom.to_string(type) =~ ~r/^flags.\d\?[a-zA-Z]*$/ui -> unbox(:flag, data, type)
           true -> unbox(:object, data, type)
         end
     end
@@ -189,6 +193,18 @@ defmodule TL.Parse do
     end
 
     {map, tail}
+  end
+
+  # 'flags'
+  defp unbox(:flag, data, type) do
+    [_, index, wrapped_type] = Regex.run(
+      ~r/^flags.(\d)\?([a-zA-Z]*)$/ui, Atom.to_string(type)
+    )
+
+    case index do
+      "0" -> {nil, data}
+      _ -> deserialize(data, String.to_atom(wrapped_type), :return_tail)
+    end
   end
 
   # Vector deserialization
