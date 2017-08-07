@@ -1,6 +1,7 @@
 defmodule TL.Parse do
-  alias TL.Schema
+  require Bitwise
   import TL.Binary
+  alias TL.Schema
 
   @moduledoc false
 
@@ -27,6 +28,9 @@ defmodule TL.Parse do
         Map.get description, "method"
       end
 
+      # Handle flags
+      {expected_params, content} = parse_flags(expected_params, content)
+
       {map, tail} = case name do
         "vector" -> 
           {list, tail} = deserialize(content, :vector, :return_tail)
@@ -48,6 +52,43 @@ defmodule TL.Parse do
     else
       {{:error, "Unable to find container #{container} in the Schema!"}, content}
     end
+  end
+
+  defp parse_flags([], content), do: {[], content}
+  defp parse_flags(expected_params, content) do
+    [first_param|params_tail] = expected_params
+    {name, type} = {Map.get(first_param, "name"), Map.get(first_param, "type")}
+
+    if {name, type} == {"flags", "#"} do
+      {flags, content_tail} = deserialize(content, :int, :return_tail)
+      processed_params = process_flags(params_tail, flags)
+      {processed_params, content_tail}
+    else # don't change anything
+      {expected_params, content}
+    end
+  end
+
+  defp process_flags(input_params, flags, processed_params \\ [])
+  defp process_flags([], _flags, processed_params), do: processed_params
+  defp process_flags([param|tail], flags, processed_params) do
+    name = Map.get(param, "name")
+    type = Map.get(param, "type")
+
+    returned_params = if Regex.match?(~r/^flags.\d\?.*$/ui, type) do
+      [_, index, wrapped_type] = Regex.run(
+        ~r/^flags.(\d)\?(.*)$/ui, type
+      )
+      index = String.to_integer(index)
+
+      if (index != 0 && Bitwise.band(flags, index) == index) do
+        processed_params ++ [%{"name" => name, "type" => wrapped_type}]
+      else
+        processed_params
+      end
+    else
+      processed_params ++ [param]
+    end
+    process_flags(tail, flags, returned_params)
   end
 
   # Extract
@@ -115,13 +156,10 @@ defmodule TL.Parse do
         deserialize(data, :string, :return_tail)
       :vector ->
         unbox(:vector, data)
-      :"#" -> # issue 3
-        deserialize(data, :int, :return_tail)
       # Anything else.
       _ ->
         cond do
           Atom.to_string(type) =~ ~r/^vector/ui -> unbox(:vector, data, type)
-          Atom.to_string(type) =~ ~r/^flags.\d\?[a-zA-Z]*$/ui -> unbox(:flag, data, type)
           true -> unbox(:object, data, type)
         end
     end
@@ -193,18 +231,6 @@ defmodule TL.Parse do
     end
 
     {map, tail}
-  end
-
-  # 'flags'
-  defp unbox(:flag, data, type) do
-    [_, index, wrapped_type] = Regex.run(
-      ~r/^flags.(\d)\?([a-zA-Z]*)$/ui, Atom.to_string(type)
-    )
-
-    case index do
-      "0" -> {nil, data}
-      _ -> deserialize(data, String.to_atom(wrapped_type), :return_tail)
-    end
   end
 
   # Vector deserialization
