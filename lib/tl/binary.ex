@@ -29,4 +29,21 @@ defmodule TL.Binary do
     right = :binary.part binary, index, byte_size(binary) - index
     {left, right}
   end
+
+  def build_integer_from_bits_list(list, value \\ 0)
+  @doc false
+  def build_integer_from_bits_list([], value), do: value
+  @doc """
+  Build an integer from a list of bit positions.
+
+  Example:
+  ```
+  iex> build_integer_from_bits_list([0,1,3,10])
+  1035
+  ```
+  """
+  def build_integer_from_bits_list([bit_index|tail], value) do
+    bit_value = :math.pow(2, bit_index) |> round()
+    build_integer_from_bits_list(tail, value + bit_value)
+  end
 end

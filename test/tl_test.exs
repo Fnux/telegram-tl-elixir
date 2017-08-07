@@ -102,9 +102,46 @@ defmodule TLTest do
     expected = %{name: "contactStatus", status: %{name: "userStatusOffline",
 was_online: 1489598653}, user_id: 13022687}
 
-    {map, tail} = TL.parse(container, content)
+    {map, _tail} = TL.parse(container, content)
     output = map |> Map.get(:value) |> List.first
 
     assert output == expected
+  end
+
+  test "Parse: auth.sentCode (basic flags)" do
+    {container, content} = {-212046591,  <<0, 0, 0, 0, 47, 63, 136, 89, 2, 37,
+    0, 94, 3, 0, 0, 0, 134, 89, 187, 61, 5, 0, 0, 0, 18, 51, 48, 99, 102, 101,
+    56, 50, 53, 99, 98, 98, 102, 49, 99, 51, 101, 57, 50, 0, 140, 21, 163, 114>>}
+
+    {map, tail} = TL.parse container, content
+    {expected_map, expected_tail} = {%{name: "rpc_result", req_msg_id: 6451475937304248320,
+      result: %{name: "auth.sentCode", next_type: %{name: "auth.codeTypeSms"},
+        phone_code_hash: "30cfe825cbbf1c3e92", phone_registered: true,
+        type: %{length: 5, name: "auth.sentCodeTypeApp"}}}, ""}
+
+    assert {map, tail} == {expected_map, expected_tail}
+  end
+
+  test "Build: auth.sendCode (basic flags)" do
+    # Flags OFF
+    serialized = TL.build("auth.sendCode", %{phone_number: "0041767780936",
+      sms_type: 0, api_id: 1234, api_hash: "hashashash", lang_code: "en"})
+
+    expected = <<236, 240, 174, 134, 0, 0, 0, 0, 13, 48, 48, 52, 49, 55, 54,
+    55, 55, 56, 48, 57, 51, 54, 0, 0, 210, 4, 0, 0, 10, 104, 97, 115, 104, 97,
+    115, 104, 97, 115, 104, 0>>
+
+    assert serialized == expected
+
+    # Flags ON
+    serialized =  TL.build("auth.sendCode", %{flags: [0],
+      phone_number: "0041767780936", sms_type: 0, api_id: 1234,
+      api_hash: "hashashash", lang_code: "en", current_number: "BoolFalse"})
+
+    expected = <<236, 240, 174, 134, 1, 0, 0, 0, 13, 48, 48, 52, 49, 55, 54,
+    55, 55, 56, 48, 57, 51, 54, 0, 0, 66, 111, 111, 108, 70, 97, 108, 115, 101,
+    210, 4, 0, 0, 10, 104, 97, 115, 104, 97, 115, 104, 97, 115, 104, 0>>
+
+    assert serialized == expected
   end
 end
