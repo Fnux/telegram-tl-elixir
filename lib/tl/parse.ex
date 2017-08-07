@@ -79,8 +79,9 @@ defmodule TL.Parse do
         ~r/^flags.(\d)\?(.*)$/ui, type
       )
       index = String.to_integer(index)
+      pow_index = :math.pow(2, index) |> round
 
-      if (index != 0 && Bitwise.band(flags, index) == index) do
+      if (index != 0 && Bitwise.band(flags, pow_index) == pow_index) do
         processed_params ++ [%{"name" => name, "type" => wrapped_type}]
       else
         processed_params
