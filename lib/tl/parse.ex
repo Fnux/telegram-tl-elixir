@@ -74,14 +74,14 @@ defmodule TL.Parse do
     name = Map.get(param, "name")
     type = Map.get(param, "type")
 
-    returned_params = if Regex.match?(~r/^flags.\d\?.*$/ui, type) do
+    returned_params = if Regex.match?(~r/^flags.\d*\?.*$/ui, type) do
       [_, index, wrapped_type] = Regex.run(
-        ~r/^flags.(\d)\?(.*)$/ui, type
+        ~r/^flags.(\d*)\?(.*)$/ui, type
       )
       index = String.to_integer(index)
       pow_index = :math.pow(2, index) |> round
 
-      if (index != 0 && Bitwise.band(flags, pow_index) == pow_index) do
+      if (Bitwise.band(flags, pow_index) == pow_index) do
         processed_params ++ [%{"name" => name, "type" => wrapped_type}]
       else
         processed_params
@@ -157,6 +157,7 @@ defmodule TL.Parse do
         deserialize(data, :string, :return_tail)
       :vector ->
         unbox(:vector, data)
+      :true -> {true, data} # workaround for flags.X?true
       # Anything else.
       _ ->
         cond do
