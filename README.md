@@ -10,14 +10,15 @@ The package and its documentation are on
 
 ## Configuration
 
-If no configuration is specified, the
-[API layer 23](https://core.telegram.org/schema?layer=23) will be used.
+If no configuration is specified, the API layer 57 **[1]** will be used.
 Although this library was only tested with the above layer version, you can
 specify a custom source in you `config.exs` :
 
 ```
 config :telegram_tl, tl_path: "/path/to/mtproto.json",
-                     api_version: 23,
-                     api_path: "/path/to/api-layer-23.json"
+                     api_version: 57,
+                     api_path: "/path/to/api-layer-57.json"
 
 ```
+
+**[1]** : the last documented version is [API layer 23](https://core.telegram.org/schema?layer=23).
