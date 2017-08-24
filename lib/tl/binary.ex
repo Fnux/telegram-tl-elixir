@@ -46,4 +46,19 @@ defmodule TL.Binary do
     bit_value = :math.pow(2, bit_index) |> round()
     build_integer_from_bits_list(tail, value + bit_value)
   end
+
+  @doc """
+  Reverse the endianness of a binary.
+
+  Example:
+  ```
+  iex> reverse_endianness(<<1,2,3>>)
+  <<3,2,1>>
+  ```
+  """
+  def reverse_endianness(bytes) do
+    bytes |> :binary.bin_to_list
+          |> Enum.reverse
+          |> :binary.list_to_bin
+  end
 end
