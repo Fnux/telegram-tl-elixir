@@ -1,6 +1,7 @@
 defmodule TLTest do
   use ExUnit.Case
   doctest TL
+  doctest TL.Binary
 
   test "Build : ping" do
     ping = TL.build "ping", %{:ping_id => 666666}

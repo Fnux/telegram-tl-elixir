@@ -5,7 +5,7 @@ defmodule TL.Schema do
   Parse and search the MTProto TL-schema (See
   [core.telegram.org/schema/mtproto](https://core.telegram.org/schema/mtproto))
   and the API TL-schema (See
-  [core.telegram.org/schema](https://core.telegram.org/schema)).
+  [core.telegram.org/schema](https://core.telegram.org/schema) for API layer 23).
   """
 
   @default_api_layer 57
@@ -59,7 +59,14 @@ defmodule TL.Schema do
   ### Public
 
   @doc """
-    Return the version of the API layer used.
+  Return the version of the API layer used.
+
+  ## Example
+
+  ```
+  iex> TL.Schema.api_layer_version
+  57
+  ```
   """
   def api_layer_version do
     config = Application.get_env(:telegram_tl, :api_layer)
@@ -67,14 +74,31 @@ defmodule TL.Schema do
   end
 
   @doc """
-    Returns the MTProto TL-schema.
+  Returns the MTProto TL-schema.
+
+  ## Example
+
+  ```
+  iex> TL.Schema.tl
+  %{"constructors" => [%{"id" => "481674261", "params" => [],
+    "predicate" => "vector", "type" => "Vector t"},
+                       %{"id" => "85337187", "params" => ... %},
+                       ...]}
+    ```
   """
   def tl do
     GenServer.call @name, :tl
   end
 
   @doc """
-    Returns the Telegram API TL-schema.
+  Returns the Telegram API TL-schema.
+
+  ## Example
+
+  ```
+  iex> TL.Schema.api
+  %{"constructors" => [%{"id" => "-1132882121", "params" => [],
+    "predicate" => "boolFalse", "type" => "Bool"}, ...], ...}
   """
   def api do
     GenServer.call @name, :api
@@ -83,32 +107,51 @@ defmodule TL.Schema do
   @doc """
   Search descriptors in the schema(s)
 
-    * `key`
-    * `container`
+    * `key` : field name
+    * `value` : field value
+
+  ## Examples
+
+  ```
+  iex> TL.Schema.search "method", "messages.setTyping"
+  {:match,
+  [%{"id" => "-1551737264", "method" => "messages.setTyping",
+    "params" => [%{"name" => "peer", "type" => "InputPeer"},
+     %{"name" => "action", "type" => "SendMessageAction"}], "type" => "Bool"}]}
+  iex> TL.Schema.search "id", "-1551737264"
+  {:match,
+  [%{"id" => "-1551737264", "method" => "messages.setTyping",
+    "params" => [%{"name" => "peer", "type" => "InputPeer"},
+     %{"name" => "action", "type" => "SendMessageAction"}], "type" => "Bool"}]}
+  iex> TL.Schema.search "method", "unknown_method"
+  {:nothing, nil}
+  iex> TL.Schema.search "method_or_predicate", "messages.sendMedia" # to search in both method and predicates
+  {:match, ...}
+  ```
   """
-  def search(key, container) do
-    {tl_match, tl_value} = search(key, container, :tl)
+  def search(key, value) do
+    {tl_match, tl_value} = search(key, value, :tl)
     # If a match was found in the tl schema, return it. If not, search in
     # the api schema.
     if tl_match == :match do
       {:match, tl_value}
     else
-      {api_match, api_value} = search(key, container, :api)
+      {api_match, api_value} = search(key, value, :api)
       if api_match == :match, do: {:match, api_value}, else: {:nothing, nil}
     end
   end
 
   @doc """
-    Search the schema(s).
+  Search in a specific schema.
 
-    * `key` - example : `"predicate"`
-    * `content` - example : `"ping"`
-    * `schema` - schema to search into, either `:tl` or `:api`.
+  * `key` - example : `"predicate"`
+  * `value` - example : `"ping"`
+  * `schema` - schema to search into, either `:tl` or `:api`.
   """
-  def search(key, content, schema) do
+  def search(key, value, schema) do
     case schema do
-      :tl -> search_schema(key, content, tl())
-      :api -> search_schema(key, content, api())
+      :tl -> search_schema(key, value, tl())
+      :api -> search_schema(key, value, api())
       _ -> {:err, nil}
     end
   end
